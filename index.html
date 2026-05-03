@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nebula — Your Cosmic Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #080618;
+            color: #fff;
+            min-height: 100vh;
+            padding-bottom: 75px;
+            overflow-x: hidden;
+        }
+
+        /* ── Splash ── */
+        #splash {
+            position: fixed; inset: 0; z-index: 9999;
+            background: #080618;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 16px;
+            transition: opacity 0.7s ease;
+        }
+        #splash.fade-out { opacity: 0; pointer-events: none; }
+        .splash-logo {
+            font-family: 'Cinzel', serif;
+            font-size: 32px; font-weight: 700; letter-spacing: 6px;
+            background: linear-gradient(135deg, #f5d87a, #d4af37, #b8960c);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: splashPulse 1.5s ease-in-out infinite;
+        }
+        .splash-sub { font-size: 12px; color: rgba(255,255,255,0.35); letter-spacing: 3px; text-transform: uppercase; }
+        .splash-ring {
+            width: 56px; height: 56px; border-radius: 50%;
+            border: 3px solid rgba(212,175,55,0.2);
+            border-top-color: #d4af37;
+            animation: spin 1s linear infinite;
+            margin-bottom: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes splashPulse {
+            0%,100% { opacity: 1; } 50% { opacity: 0.6; }
+        }
+
+        /* ── Stars ── */
+        #stars-canvas {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0; pointer-events: none;
+        }
+
+        /* ── Header ── */
+        .header {
+            position: relative; z-index: 10;
+            padding: 16px 20px 12px; text-align: center;
+            background: linear-gradient(180deg, rgba(10,6,30,0.98) 0%, rgba(10,6,30,0.75) 100%);
+            border-bottom: 1px solid rgba(212,175,55,0.2);
+            backdrop-filter: blur(14px);
+        }
+        .header-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .moon-phase { font-size: 18px; }
+        .header h1 {
+            font-family: 'Cinzel', serif; font-size: 21px; font-weight: 700; letter-spacing: 4px;
+            background: linear-gradient(135deg, #f5d87a, #d4af37, #c9971a);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .header p { font-size: 10px; color: rgba(255,255,255,0.38); letter-spacing: 2px; margin-top: 3px; text-transform: uppercase; }
+
+        /* ── Sign Selector ── */
+        .sign-selector {
+            position: relative; z-index: 10;
+            display: flex; overflow-x: auto;
+            padding: 12px 14px; gap: 9px;
+            scrollbar-width: none;
+            background: rgba(6,4,20,0.7);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .sign-selector::-webkit-scrollbar { display: none; }
+        .sign-card {
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 9px 14px;
+            text-align: center; cursor: pointer;
+            transition: all 0.22s ease; min-width: 76px;
+        }
+        .sign-card .sign-symbol { font-size: 19px; display: block; margin-bottom: 3px; }
+        .sign-card .sign-name { font-size: 10px; color: rgba(255,255,255,0.45); font-weight: 500; }
+        .sign-card:active { transform: scale(0.95); }
+        .sign-card:hover { background: rgba(212,175,55,0.09); border-color: rgba(212,175,55,0.35); transform: translateY(-2px); }
+        .sign-card.active {
+            background: rgba(212,175,55,0.18); border-color: #d4af37;
+            box-shadow: 0 0 18px rgba(212,175,55,0.28);
+        }
+        .sign-card.active .sign-name { color: #d4af37; }
+
+        /* ── Content ── */
+        .content-section { position: relative; z-index: 10; padding: 16px 15px; }
+        .view { display: none; animation: fadeSlideIn 0.32s ease; }
+        .view.active { display: block; }
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Cards ── */
+        .reading-box {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px; padding: 18px;
+            margin-bottom: 13px; backdrop-filter: blur(10px);
+            transition: all 0.22s ease;
+        }
+        .reading-box.tappable { cursor: pointer; }
+        .reading-box.tappable:hover {
+            background: rgba(255,255,255,0.07);
+            border-color: rgba(212,175,55,0.28);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+        }
+        .reading-box.tappable:active { transform: scale(0.99); }
+        .reading-box h2 { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: #d4af37; }
+        .reading-box p { font-size: 13px; line-height: 1.75; color: rgba(255,255,255,0.68); }
+        .card-glow { border-color: rgba(212,175,55,0.3) !important; box-shadow: 0 0 22px rgba(212,175,55,0.1); }
+
+        .today-tag {
+            display: inline-block; font-size: 10px; font-weight: 600;
+            letter-spacing: 1px; text-transform: uppercase; color: #d4af37;
+            background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.28);
+            border-radius: 20px; padding: 3px 10px; margin-bottom: 10px;
+        }
+        .lucky-row {
+            display: flex; gap: 10px; margin-top: 14px;
+        }
+        .lucky-pill {
+            flex: 1; padding: 9px 12px; border-radius: 12px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
+            text-align: center;
+        }
+        .lucky-pill .lp-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.38); margin-bottom: 4px; }
+        .lucky-pill .lp-value { font-size: 14px; font-weight: 600; color: #fff; }
+
+        /* ── Bottom Nav ── */
+        .bottom-nav {
+            position: fixed; bottom: 0; width: 100%;
+            background: rgba(6,4,20,0.98); display: flex;
+            justify-content: space-around; padding: 9px 0 13px;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            backdrop-filter: blur(18px); z-index: 100;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            cursor: pointer; transition: all 0.2s; padding: 5px 10px; border-radius: 12px; min-width: 56px;
+        }
+        .nav-item .nav-icon { font-size: 21px; transition: transform 0.2s; }
+        .nav-item .nav-label { font-size: 10px; color: rgba(255,255,255,0.32); font-weight: 500; }
+        .nav-item.active .nav-label { color: #d4af37; }
+        .nav-item.active .nav-icon { transform: scale(1.12); filter: drop-shadow(0 0 7px #d4af37); }
+        .nav-item:hover { background: rgba(255,255,255,0.05); }
+
+        /* ── Forms ── */
+        .section-title { font-family: 'Cinzel', serif; font-size: 16px; color: #d4af37; margin-bottom: 4px; }
+        .section-sub { font-size: 12px; color: rgba(255,255,255,0.38); margin-bottom: 16px; }
+        .input-group { margin-bottom: 13px; }
+        .input-group label { display: block; font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.4); margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+        .input-group input, .input-group select {
+            width: 100%; padding: 12px 14px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05); color: white; outline: none;
+            font-size: 14px; font-family: 'Inter', sans-serif; transition: border-color 0.2s;
+        }
+        .input-group input:focus, .input-group select:focus { border-color: rgba(212,175,55,0.5); background: rgba(212,175,55,0.06); }
+        .input-group select option { background: #1a1535; color: white; }
+        .action-btn {
+            width: 100%; padding: 15px; border: none; border-radius: 14px;
+            font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px;
+            cursor: pointer; margin-top: 6px; transition: all 0.22s ease;
+            background: linear-gradient(135deg, #f5d87a, #d4af37);
+            color: #0d0a20; box-shadow: 0 4px 20px rgba(212,175,55,0.32);
+        }
+        .action-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(212,175,55,0.44); }
+        .action-btn:active { transform: scale(0.98); }
+        .action-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .action-btn.ghost {
+            background: rgba(255,255,255,0.07); color: white;
+            box-shadow: none; border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* ── Results ── */
+        .result-card {
+            background: rgba(212,175,55,0.05); border: 1px solid rgba(212,175,55,0.25);
+            border-radius: 18px; padding: 20px 16px; margin-top: 16px; text-align: center;
+            animation: fadeSlideIn 0.4s ease;
+        }
+        .planet-list { text-align: left; margin-top: 14px; }
+        .planet-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13px;
+        }
+        .planet-item:last-child { border-bottom: none; }
+        .planet-item span:last-child { color: #d4af37; font-weight: 600; }
+
+        /* Score Circle */
+        .score-wrap { position: relative; width: 116px; height: 116px; margin: 0 auto 16px; }
+        .score-wrap svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+        .score-track { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 7; }
+        .score-fill { fill: none; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 1.4s ease, stroke 0.4s ease; }
+        .score-inner {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .score-num { font-size: 28px; font-weight: 700; }
+        .score-pct { font-size: 11px; color: rgba(255,255,255,0.38); margin-top: -1px; }
+        .match-title { font-family: 'Cinzel', serif; font-size: 17px; color: #d4af37; margin-bottom: 8px; }
+        .match-desc { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.65; }
+        .share-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-top: 16px; padding: 10px 20px; border-radius: 22px;
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.75); font-size: 13px; font-weight: 500;
+            cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif;
+        }
+        .share-btn:hover { background: rgba(212,175,55,0.15); border-color: rgba(212,175,55,0.35); color: #d4af37; }
+
+        /* ── Chat Modal ── */
+        .chat-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(6,4,20,0.98); z-index: 1000; flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+        .chat-modal.open { display: flex; animation: fadeSlideIn 0.28s ease; }
+        .chat-header {
+            padding: 16px 18px;
+            background: rgba(14,10,38,0.98);
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(212,175,55,0.18);
+        }
+        .chat-header-info { display: flex; align-items: center; gap: 12px; }
+        .chat-avatar {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: linear-gradient(135deg, #f5d87a, #c9971a);
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+            box-shadow: 0 0 14px rgba(212,175,55,0.3);
+        }
+        .chat-header h3 { font-family: 'Cinzel', serif; font-size: 14px; color: #d4af37; }
+        .chat-header small { font-size: 11px; color: #4CAF50; }
+        .close-btn { color: rgba(255,255,255,0.45); font-size: 26px; cursor: pointer; line-height: 1; transition: color 0.2s; }
+        .close-btn:hover { color: white; }
+        .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .msg {
+            padding: 11px 15px; border-radius: 18px; max-width: 84%;
+            font-size: 13.5px; line-height: 1.6; animation: fadeSlideIn 0.25s ease;
+        }
+        .bot-msg {
+            background: rgba(212,175,55,0.11); border: 1px solid rgba(212,175,55,0.22);
+            align-self: flex-start; border-bottom-left-radius: 5px; color: rgba(255,255,255,0.9);
+        }
+        .user-msg {
+            background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.1);
+            align-self: flex-end; border-bottom-right-radius: 5px;
+        }
+        .typing-indicator {
+            display: flex; gap: 5px; align-items: center; padding: 12px 16px;
+            background: rgba(212,175,55,0.09); border: 1px solid rgba(212,175,55,0.18);
+            border-radius: 18px; border-bottom-left-radius: 5px;
+            align-self: flex-start; width: 62px;
+        }
+        .typing-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #d4af37; opacity: 0.5; animation: typingBounce 1.2s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce {
+            0%,60%,100% { transform: translateY(0); opacity: 0.5; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+        .chat-input-area {
+            padding: 12px 14px; background: rgba(8,5,22,0.98);
+            display: flex; gap: 9px; align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .chat-input-area input {
+            flex: 1; padding: 12px 16px; border-radius: 22px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.06); color: white; outline: none;
+            font-size: 14px; font-family: 'Inter', sans-serif; transition: border-color 0.2s;
+        }
+        .chat-input-area input:focus { border-color: rgba(212,175,55,0.4); }
+        .send-btn {
+            background: linear-gradient(135deg, #f5d87a, #d4af37);
+            color: #0d0a20; border: none; width: 42px; height: 42px; border-radius: 50%;
+            font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: all 0.2s; box-shadow: 0 2px 14px rgba(212,175,55,0.32);
+        }
+        .send-btn:hover { transform: scale(1.08); box-shadow: 0 4px 20px rgba(212,175,55,0.45); }
+
+        /* ── Profile ── */
+        .profile-avatar {
+            width: 90px; height: 90px; border-radius: 50%;
+            background: linear-gradient(135deg, rgba(212,175,55,0.28), rgba(212,175,55,0.04));
+            border: 2px solid #d4af37;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 38px; margin: 0 auto 14px;
+            box-shadow: 0 0 28px rgba(212,175,55,0.22);
+            animation: profileGlow 3s ease-in-out infinite;
+        }
+        @keyframes profileGlow {
+            0%,100% { box-shadow: 0 0 20px rgba(212,175,55,0.2); }
+            50% { box-shadow: 0 0 36px rgba(212,175,55,0.4); }
+        }
+        .profile-name { font-family: 'Cinzel', serif; font-size: 18px; color: #fff; margin-bottom: 3px; }
+        .profile-sub { font-size: 12px; color: rgba(255,255,255,0.38); margin-bottom: 16px; }
+        .badge {
+            display: inline-block; font-size: 11px; font-weight: 600;
+            padding: 5px 14px; border-radius: 20px;
+            background: linear-gradient(135deg, rgba(212,175,55,0.22), rgba(212,175,55,0.04));
+            border: 1px solid rgba(212,175,55,0.38); color: #d4af37; margin-bottom: 18px;
+        }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(16px);
+            background: rgba(20,14,48,0.94); border: 1px solid rgba(212,175,55,0.35);
+            color: #d4af37; padding: 10px 22px; border-radius: 24px;
+            font-size: 13px; font-weight: 500; z-index: 500; opacity: 0;
+            transition: all 0.32s ease; white-space: nowrap; backdrop-filter: blur(10px);
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<!-- Splash Screen -->
+<div id="splash">
+    <div class="splash-ring"></div>
+    <div class="splash-logo">✦ NEBULA</div>
+    <div class="splash-sub">Your Cosmic Guide</div>
+</div>
+
+<canvas id="stars-canvas"></canvas>
+
+<div class="header">
+    <div class="header-row">
+        <span class="moon-phase" id="moonPhase">🌙</span>
+        <h1>NEBULA</h1>
+        <span class="moon-phase" id="moonPhase2">✦</span>
+    </div>
+    <p>Your Daily Cosmic Guide</p>
+</div>
+
+<div class="sign-selector">
+    <div class="sign-card active" data-sign="Aries"><span class="sign-symbol">♈</span><span class="sign-name">Aries</span></div>
+    <div class="sign-card" data-sign="Taurus"><span class="sign-symbol">♉</span><span class="sign-name">Taurus</span></div>
+    <div class="sign-card" data-sign="Gemini"><span class="sign-symbol">♊</span><span class="sign-name">Gemini</span></div>
+    <div class="sign-card" data-sign="Cancer"><span class="sign-symbol">♋</span><span class="sign-name">Cancer</span></div>
+    <div class="sign-card" data-sign="Leo"><span class="sign-symbol">♌</span><span class="sign-name">Leo</span></div>
+    <div class="sign-card" data-sign="Virgo"><span class="sign-symbol">♍</span><span class="sign-name">Virgo</span></div>
+    <div class="sign-card" data-sign="Libra"><span class="sign-symbol">♎</span><span class="sign-name">Libra</span></div>
+    <div class="sign-card" data-sign="Scorpio"><span class="sign-symbol">♏</span><span class="sign-name">Scorpio</span></div>
+    <div class="sign-card" data-sign="Sagittarius"><span class="sign-symbol">♐</span><span class="sign-name">Sagittarius</span></div>
+    <div class="sign-card" data-sign="Capricorn"><span class="sign-symbol">♑</span><span class="sign-name">Capricorn</span></div>
+    <div class="sign-card" data-sign="Aquarius"><span class="sign-symbol">♒</span><span class="sign-name">Aquarius</span></div>
+    <div class="sign-card" data-sign="Pisces"><span class="sign-symbol">♓</span><span class="sign-name">Pisces</span></div>
+</div>
+
+<div class="content-section">
+
+    <!-- HOME VIEW -->
+    <div id="homeView" class="view active">
+        <div class="reading-box card-glow">
+            <span class="today-tag" id="todayDate">TODAY</span>
+            <h2>✨ Daily Horoscope</h2>
+            <p id="horoscopeText">The universe is aligning in your favor today. A sudden burst of energy will help you tackle pending tasks. Trust your intuition.</p>
+            <div class="lucky-row">
+                <div class="lucky-pill">
+                    <div class="lp-label">Lucky Number</div>
+                    <div class="lp-value" id="luckyNum">7</div>
+                </div>
+                <div class="lucky-pill">
+                    <div class="lp-label">Lucky Color</div>
+                    <div class="lp-value" id="luckyColor">Gold</div>
+                </div>
+                <div class="lucky-pill">
+                    <div class="lp-label">Energy</div>
+                    <div class="lp-value" id="luckyEnergy">High ⚡</div>
+                </div>
+            </div>
+        </div>
+        <div class="reading-box tappable" id="goToCompatBtn">
+            <h2>❤️ Compatibility Match</h2>
+            <p>Tap here to calculate your cosmic compatibility score with your partner.</p>
+        </div>
+        <div class="reading-box tappable" style="border-color: rgba(212,175,55,0.28);" id="openChatBox">
+            <h2>🤖 Ask AI Astrologer</h2>
+            <p>Got a question about love, career, or future? Chat with your cosmic guide now.</p>
+        </div>
+    </div>
+
+    <!-- CHART VIEW -->
+    <div id="chartView" class="view">
+        <div class="reading-box">
+            <p class="section-title">Birth Chart</p>
+            <p class="section-sub">Enter your details to reveal planetary positions</p>
+            <div class="input-group">
+                <label>Birth Date</label>
+                <input type="date" id="chartDate">
+            </div>
+            <div class="input-group">
+                <label>Birth Time</label>
+                <input type="time" id="chartTime">
+            </div>
+            <div class="input-group">
+                <label>Birth Place</label>
+                <input type="text" id="chartPlace" placeholder="e.g. Mumbai, India">
+            </div>
+            <button class="action-btn" id="generateChartBtn">✦ Generate My Chart</button>
+            <div id="chartResult" class="result-card hidden">
+                <p style="font-family:'Cinzel',serif;font-size:13px;color:#d4af37;margin-bottom:14px;">Your Cosmic Blueprint</p>
+                <div class="planet-list">
+                    <div class="planet-item"><span>☀️ Sun Sign</span><span id="rsSun">—</span></div>
+                    <div class="planet-item"><span>🌙 Moon Sign</span><span id="rsMoon">—</span></div>
+                    <div class="planet-item"><span>⬆️ Rising Sign</span><span id="rsRising">—</span></div>
+                    <div class="planet-item"><span>🪐 Mercury</span><span id="rsMerc">—</span></div>
+                    <div class="planet-item"><span>💫 Venus</span><span id="rsVenus">—</span></div>
+                    <div class="planet-item"><span>🔴 Mars</span><span id="rsMars">—</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMPAT VIEW -->
+    <div id="compatView" class="view">
+        <div class="reading-box">
+            <p class="section-title">Compatibility</p>
+            <p class="section-sub">Find your cosmic match score</p>
+            <div class="input-group">
+                <label>Your Sign</label>
+                <select id="sign1">
+                    <option>Aries</option><option>Taurus</option><option>Gemini</option><option>Cancer</option>
+                    <option>Leo</option><option>Virgo</option><option>Libra</option><option>Scorpio</option>
+                    <option>Sagittarius</option><option>Capricorn</option><option>Aquarius</option><option>Pisces</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Partner's Sign</label>
+                <select id="sign2">
+                    <option>Leo</option><option>Aries</option><option>Taurus</option><option>Gemini</option>
+                    <option>Cancer</option><option>Virgo</option><option>Libra</option><option>Scorpio</option>
+                    <option>Sagittarius</option><option>Capricorn</option><option>Aquarius</option><option>Pisces</option>
+                </select>
+            </div>
+            <button class="action-btn" id="calcCompatBtn">💫 Calculate Match</button>
+            <div id="compatResult" class="result-card hidden">
+                <div class="score-wrap">
+                    <svg width="116" height="116" viewBox="0 0 116 116">
+                        <circle class="score-track" cx="58" cy="58" r="50"/>
+                        <circle class="score-fill" id="scoreFill" cx="58" cy="58" r="50"
+                            stroke-dasharray="314.16" stroke-dashoffset="314.16" stroke="#d4af37"/>
+                    </svg>
+                    <div class="score-inner">
+                        <span class="score-num" id="matchScore" style="color:#d4af37;">0</span>
+                        <span class="score-pct">match</span>
+                    </div>
+                </div>
+                <p class="match-title" id="matchTitle">—</p>
+                <p class="match-desc" id="matchDesc">—</p>
+                <button class="share-btn" id="shareBtn">📤 Share My Result</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE VIEW -->
+    <div id="profileView" class="view">
+        <div class="reading-box" style="text-align:center; padding:26px 18px;">
+            <div class="profile-avatar">👤</div>
+            <p class="profile-name">Soham Patil</p>
+            <p class="profile-sub">soham@nebula.app</p>
+            <div class="badge">💎 Nebula Premium</div>
+            <div class="planet-list" style="text-align:left;">
+                <div class="planet-item"><span>🌟 Primary Sign</span><span>Aries</span></div>
+                <div class="planet-item"><span>📅 Member Since</span><span>Jan 2025</span></div>
+                <div class="planet-item"><span>🔔 Notifications</span><span style="color:#4CAF50;">Enabled</span></div>
+                <div class="planet-item"><span>🌍 Location</span><span>Mumbai, India</span></div>
+                <div class="planet-item"><span>🤖 AI Readings</span><span>47 Sessions</span></div>
+                <div class="planet-item"><span>⭐ Streak</span><span style="color:#d4af37;">12 days 🔥</span></div>
+            </div>
+            <button class="action-btn ghost" style="margin-top:18px;">✏️ Edit Profile</button>
+        </div>
+    </div>
+
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+    <div class="nav-item active" data-target="home"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></div>
+    <div class="nav-item" data-target="chart"><span class="nav-icon">🪐</span><span class="nav-label">Chart</span></div>
+    <div class="nav-item" data-target="chat"><span class="nav-icon">🤖</span><span class="nav-label">Chat</span></div>
+    <div class="nav-item" data-target="profile"><span class="nav-icon">👤</span><span class="nav-label">Profile</span></div>
+</div>
+
+<!-- Chat Modal -->
+<div class="chat-modal" id="chatModal">
+    <div class="chat-header">
+        <div class="chat-header-info">
+            <div class="chat-avatar">🔮</div>
+            <div>
+                <h3>AI Astrologer</h3>
+                <small>● Online</small>
+            </div>
+        </div>
+        <span class="close-btn" id="closeChat">&times;</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+        <div class="msg bot-msg">Namaste! ✨ I am your cosmic guide. Ask me anything about love, career, or your future.</div>
+    </div>
+    <div class="chat-input-area">
+        <input type="text" id="userInput" placeholder="Ask the stars anything…">
+        <button class="send-btn" id="sendBtn">➤</button>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Splash ──
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        const s = document.getElementById('splash');
+        s.classList.add('fade-out');
+        setTimeout(() => s.remove(), 700);
+    }, 2000);
+});
+
+// ── Date ──
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const now = new Date();
+document.getElementById('todayDate').textContent = `Today · ${months[now.getMonth()]} ${now.getDate()}`;
+
+// ── Stars ──
+(function() {
+    const canvas = document.getElementById('stars-canvas');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    function initStars() {
+        stars = [];
+        for (let i = 0; i < 180; i++) stars.push({
+            x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+            r: Math.random() * 1.3 + 0.15, speed: Math.random() * 0.005 + 0.001,
+            phase: Math.random() * Math.PI * 2
+        });
+    }
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const t = Date.now() / 1000;
+        stars.forEach(s => {
+            const a = 0.25 + 0.55 * Math.abs(Math.sin(t * s.speed * 10 + s.phase));
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill();
+        });
+        requestAnimationFrame(draw);
+    }
+    window.addEventListener('resize', () => { resize(); initStars(); });
+    resize(); initStars(); draw();
+})();
+
+// ── Toast ──
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ── Horoscope Data ──
+const horoscopeData = {
+    'Aries':       { text: 'The universe is aligning in your favor today. A burst of energy helps you tackle pending tasks. Trust your gut.', num: 7, color: 'Red', energy: 'High ⚡' },
+    'Taurus':      { text: 'Patience is your greatest strength today. Delay big financial decisions until the full picture reveals itself.', num: 4, color: 'Green', energy: 'Calm 🌿' },
+    'Gemini':      { text: 'Your communication peaks today. Resolve old conflicts or pitch a bold new idea — the stars are listening.', num: 5, color: 'Yellow', energy: 'High ⚡' },
+    'Cancer':      { text: 'Emotional energies run high today. Focus on self-care and surround yourself with people who truly get you.', num: 2, color: 'Silver', energy: 'Deep 🌊' },
+    'Leo':         { text: 'Your confidence radiates today. Step into the spotlight — leadership opportunities are drawn to your light.', num: 1, color: 'Gold', energy: 'High ⚡' },
+    'Virgo':       { text: 'Details unlock the door today. Your analytical mind will spot what others have completely missed.', num: 6, color: 'Brown', energy: 'Focused 🎯' },
+    'Libra':       { text: 'Balance is your power today. A strained relationship finds harmony through your calm, empathetic approach.', num: 6, color: 'Pink', energy: 'Calm 🌿' },
+    'Scorpio':     { text: "Deep intuition guides every step today. Don't silence your gut — it's perfectly aligned with the cosmos.", num: 8, color: 'Maroon', energy: 'Intense 🔥' },
+    'Sagittarius': { text: 'Adventure beckons! New ideas will expand your horizons further than you dared to imagine.', num: 3, color: 'Purple', energy: 'High ⚡' },
+    'Capricorn':   { text: 'Your discipline is being rewarded. Saturn delivers a long-awaited breakthrough — keep pushing forward.', num: 8, color: 'Black', energy: 'Steady 💪' },
+    'Aquarius':    { text: 'Your radical idea is finally ready to be heard. The world genuinely needs your unique perspective right now.', num: 11, color: 'Blue', energy: 'High ⚡' },
+    'Pisces':      { text: 'Creativity flows like a river today. Channel your emotions into something beautiful and truly lasting.', num: 9, color: 'Aqua', energy: 'Deep 🌊' }
+};
+
+const signs = document.querySelectorAll('.sign-card');
+function updateHoroscope(name) {
+    const d = horoscopeData[name];
+    const text = document.getElementById('horoscopeText');
+    text.style.opacity = '0';
+    setTimeout(() => {
+        text.textContent = d.text;
+        document.getElementById('luckyNum').textContent = d.num;
+        document.getElementById('luckyColor').textContent = d.color;
+        document.getElementById('luckyEnergy').textContent = d.energy;
+        text.style.transition = 'opacity 0.4s'; text.style.opacity = '1';
+    }, 140);
+}
+
+signs.forEach(card => {
+    card.addEventListener('click', () => {
+        signs.forEach(s => s.classList.remove('active'));
+        card.classList.add('active');
+        updateHoroscope(card.dataset.sign);
+        showToast(`${card.querySelector('.sign-symbol').textContent} ${card.dataset.sign}`);
+    });
+});
+
+// ── Navigation ──
+const views = { home: document.getElementById('homeView'), chart: document.getElementById('chartView'), compat: document.getElementById('compatView'), profile: document.getElementById('profileView') };
+const navItems = document.querySelectorAll('.nav-item');
+
+function switchView(target) {
+    Object.values(views).forEach(v => v.classList.remove('active'));
+    if (views[target]) views[target].classList.add('active');
+    navItems.forEach(n => { n.classList.remove('active'); if (n.dataset.target === target) n.classList.add('active'); });
+}
+
+navItems.forEach(item => {
+    item.addEventListener('click', () => {
+        if (item.dataset.target === 'chat') { openChat(); return; }
+        switchView(item.dataset.target);
+    });
+});
+document.getElementById('goToCompatBtn').addEventListener('click', () => switchView('compat'));
+document.getElementById('openChatBox').addEventListener('click', openChat);
+
+// ── Chat ──
+const chatModal = document.getElementById('chatModal');
+const chatMessages = document.getElementById('chatMessages');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+
+function openChat() { chatModal.classList.add('open'); userInput.focus(); }
+document.getElementById('closeChat').addEventListener('click', () => chatModal.classList.remove('open'));
+
+function addMessage(text, cls) {
+    const div = document.createElement('div');
+    div.className = `msg ${cls}`; div.textContent = text;
+    chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+const astroResponses = [
+    'The stars suggest trusting your intuition here. Venus is in a deeply favorable position right now. ✨',
+    "Mercury's energy brings clarity today. Be patient — the answer will reveal itself soon. 🔮",
+    'I sense a cosmic shift in your chart. Focus on growth and the pieces will fall into place. 🌙',
+    'Your stars show great potential, but avoid rushing. Let the universe guide you. 🌟',
+    "The moon's energy amplifies your emotions today. Act from the heart, not from fear. 💫",
+    "Jupiter's influence is strong this week. Expansion and abundance are within reach. ☀️",
+    'Saturn asks for discipline right now. The breakthrough you seek is just one more effort away. 🪐'
+];
+
+function sendMessage() {
+    const text = userInput.value.trim(); if (!text) return;
+    addMessage(text, 'user-msg'); userInput.value = '';
+    const typing = document.createElement('div');
+    typing.className = 'typing-indicator';
+    typing.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+    chatMessages.appendChild(typing); chatMessages.scrollTop = chatMessages.scrollHeight;
+    setTimeout(() => {
+        typing.remove();
+        addMessage(astroResponses[Math.floor(Math.random() * astroResponses.length)], 'bot-msg');
+    }, 1500);
+}
+
+sendBtn.addEventListener('click', sendMessage);
+userInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+
+// ── Birth Chart ──
+const signsList = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+document.getElementById('generateChartBtn').addEventListener('click', function() {
+    this.textContent = '⏳ Calculating Alignments…'; this.disabled = true;
+    document.getElementById('chartResult').classList.add('hidden');
+    setTimeout(() => {
+        ['rsSun','rsMoon','rsRising','rsMerc','rsVenus','rsMars'].forEach(id => {
+            document.getElementById(id).textContent = signsList[Math.floor(Math.random() * 12)];
+        });
+        document.getElementById('chartResult').classList.remove('hidden');
+        this.textContent = '✦ Generate My Chart'; this.disabled = false;
+        showToast('Your birth chart is ready ✨');
+    }, 1400);
+});
+
+// ── Compatibility ──
+document.getElementById('calcCompatBtn').addEventListener('click', function() {
+    this.textContent = '🌙 Reading the Stars…'; this.disabled = true;
+    document.getElementById('compatResult').classList.add('hidden');
+    document.getElementById('scoreFill').style.strokeDashoffset = '314.16';
+    setTimeout(() => {
+        const score = Math.floor(Math.random() * 37) + 62;
+        let title, desc, color;
+        if (score > 87)      { title = 'Soulmates ✨'; desc = 'Your cosmic energies are deeply intertwined. This connection is truly written in the stars.'; color = '#4CAF50'; }
+        else if (score > 75) { title = 'Great Potential 🌟'; desc = 'Strong foundations and mutual understanding make this a deeply rewarding bond.'; color = '#d4af37'; }
+        else                 { title = 'A Learning Curve 🌙'; desc = 'Your elements differ, but patience and open communication will build something beautiful.'; color = '#FF9800'; }
+        document.getElementById('matchScore').textContent = score;
+        document.getElementById('matchScore').style.color = color;
+        document.getElementById('matchTitle').textContent = title;
+        document.getElementById('matchDesc').textContent = desc;
+        document.getElementById('scoreFill').style.stroke = color;
+        document.getElementById('scoreFill').style.strokeDashoffset = 314.16 - (score / 100) * 314.16;
+        document.getElementById('compatResult').classList.remove('hidden');
+        this.textContent = '💫 Calculate Match'; this.disabled = false;
+        showToast(`Match: ${score}% ${score > 87 ? '💕' : score > 75 ? '✨' : '🌙'}`);
+    }, 1500);
+});
+
+document.getElementById('shareBtn').addEventListener('click', () => {
+    const score = document.getElementById('matchScore').textContent;
+    const title = document.getElementById('matchTitle').textContent;
+    const text = `My cosmic compatibility score is ${score}% — "${title}" ✨ Checked on Nebula!`;
+    if (navigator.share) {
+        navigator.share({ title: 'Nebula Compatibility', text });
+    } else {
+        navigator.clipboard.writeText(text).then(() => showToast('Result copied to clipboard! 📋'));
+    }
+});
+</script>
+
+</body>
+</html>
